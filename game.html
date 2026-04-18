@@ -1,25 +1,298 @@
 <!DOCTYPE html>
-<html>
-<head><title>Test</title></head>
-<body style="background:#000;color:#0ff;font-family:monospace;padding:20px">
-<h2>BEATDROP CONNECTION TEST</h2>
-<div id="out">Testing...</div>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BEATDROP</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --c0:#00f0ff;--c1:#ff2d6e;--c2:#f5e642;--c3:#00ff99;
+  --bg:#03030a;--panel:#07070e;--dim:#252540;
+  --g0:rgba(0,240,255,.65);--g1:rgba(255,45,110,.65);--g2:rgba(245,230,66,.6);--g3:rgba(0,255,153,.65);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:#fff;font-family:'Share Tech Mono',monospace;}
+#cur{position:fixed;width:10px;height:10px;background:var(--c0);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:0 0 14px var(--c0),0 0 28px var(--c0);}
+#grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,.018)1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,.018)1px,transparent 1px);background-size:48px 48px;z-index:0;pointer-events:none;}
+#scan{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.08)3px,rgba(0,0,0,.08)4px);z-index:1;pointer-events:none;}
+#ptcl{position:fixed;inset:0;pointer-events:none;z-index:6;overflow:hidden;}
+.pt{position:absolute;border-radius:50%;animation:ptd linear forwards;}
+@keyframes ptd{0%{opacity:.9;transform:translateY(0)}100%{opacity:0;transform:translateY(-150px)}}
+
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;transition:opacity .3s;overflow-y:auto;}
+.screen.center{justify-content:center;}
+.screen.off{opacity:0;pointer-events:none;}
+
+/* ── SONG SELECT ── */
+#s-select{padding:0 0 60px;}
+
+.select-header{width:100%;background:rgba(3,3,10,.94);border-bottom:1px solid rgba(0,240,255,.08);padding:18px 24px;position:sticky;top:0;z-index:20;backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:space-between;}
+.header-logo{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;letter-spacing:.18em;color:var(--c0);text-shadow:0 0 14px var(--c0);}
+.header-logo em{font-style:normal;color:var(--c1);}
+.header-sub{font-size:.55rem;letter-spacing:.4em;color:var(--dim);}
+
+/* Search + filter */
+.select-controls{padding:16px 20px;display:flex;gap:10px;flex-wrap:wrap;position:sticky;top:73px;z-index:19;background:rgba(3,3,10,.9);backdrop-filter:blur(8px);border-bottom:1px solid rgba(0,240,255,.05);}
+#search-input{flex:1;min-width:180px;background:rgba(0,240,255,.04);border:1px solid rgba(0,240,255,.15);border-radius:2px;color:#fff;font-family:'Share Tech Mono',monospace;font-size:.82rem;padding:9px 13px;outline:none;transition:all .15s;}
+#search-input:focus{border-color:var(--c0);box-shadow:0 0 10px rgba(0,240,255,.15);}
+#search-input::placeholder{color:var(--dim);}
+.filter-btn{background:rgba(0,240,255,.03);border:1px solid rgba(0,240,255,.12);color:var(--dim);font-family:'Orbitron',sans-serif;font-size:.42rem;letter-spacing:.12em;padding:9px 14px;border-radius:2px;cursor:pointer;transition:all .14s;}
+.filter-btn.on{border-color:var(--c0);color:var(--c0);background:rgba(0,240,255,.08);}
+.filter-btn.on.h{border-color:var(--c1);color:var(--c1);}
+.filter-btn.on.x{border-color:var(--c2);color:var(--c2);}
+
+/* Song cards */
+.songs-grid{padding:16px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;width:100%;}
+.song-card{background:var(--panel);border:1px solid rgba(0,240,255,.08);border-radius:4px;padding:18px 20px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;}
+.song-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,240,255,.15),transparent);transition:all .18s;}
+.song-card:hover{border-color:rgba(0,240,255,.25);box-shadow:0 0 20px rgba(0,240,255,.08);transform:translateY(-2px);}
+.song-card:hover::before{background:linear-gradient(90deg,transparent,var(--c0),transparent);}
+.card-title{font-family:'Orbitron',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.08em;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-artist{font-size:.7rem;color:var(--dim);margin-bottom:10px;}
+.card-meta{display:flex;align-items:center;justify-content:space-between;}
+.card-tags{display:flex;gap:6px;}
+.ctag{font-size:.42rem;letter-spacing:.1em;padding:3px 8px;border-radius:2px;font-family:'Orbitron',sans-serif;}
+.ctag-e{border:1px solid rgba(0,240,255,.3);color:var(--c0);}
+.ctag-n{border:1px solid rgba(0,255,153,.3);color:var(--c3);}
+.ctag-h{border:1px solid rgba(255,45,110,.3);color:var(--c1);}
+.ctag-x{border:1px solid rgba(245,230,66,.3);color:var(--c2);}
+.ctag-genre{border:1px solid rgba(255,255,255,.08);color:var(--dim);}
+.card-beats{font-size:.58rem;color:var(--dim);}
+.card-play-icon{position:absolute;bottom:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(0,240,255,.08);border:1px solid rgba(0,240,255,.2);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--c0);transition:all .18s;}
+.song-card:hover .card-play-icon{background:rgba(0,240,255,.18);box-shadow:0 0 12px rgba(0,240,255,.3);}
+
+.no-songs{padding:60px 20px;text-align:center;color:var(--dim);font-size:.82rem;letter-spacing:.1em;width:100%;}
+.loading-songs{padding:60px 20px;text-align:center;width:100%;}
+.loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c0);margin:0 4px;animation:ldot 1.2s ease-in-out infinite;}
+.loading-dot:nth-child(2){animation-delay:.2s;}
+.loading-dot:nth-child(3){animation-delay:.4s;}
+@keyframes ldot{0%,80%,100%{transform:scale(0);opacity:.3}40%{transform:scale(1);opacity:1}}
+
+/* ── LOADING SCREEN ── */
+#s-loading{gap:16px;}
+.load-logo{font-family:'Orbitron',sans-serif;font-size:2.4rem;font-weight:900;letter-spacing:.2em;color:var(--c0);text-shadow:0 0 20px var(--c0);}
+.load-logo em{font-style:normal;color:var(--c1);}
+.load-bar-wrap{width:240px;height:2px;background:rgba(0,240,255,.08);border-radius:2px;overflow:hidden;}
+.load-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--c0),var(--c1));box-shadow:0 0 6px var(--c0);transition:width .3s;}
+#load-status{font-size:.62rem;color:var(--dim);letter-spacing:.2em;}
+
+/* ── GAME ── */
+#s-game{flex-direction:column;justify-content:flex-start;overflow:hidden;}
+#hud{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(3,3,10,.92);border-bottom:1px solid rgba(0,240,255,.07);display:flex;align-items:center;justify-content:space-around;z-index:30;backdrop-filter:blur(8px);}
+.hb{text-align:center;}
+.hbl{font-family:'Orbitron',sans-serif;font-size:.35rem;letter-spacing:.25em;color:var(--dim);display:block;margin-bottom:1px;}
+.hbv{font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:700;}
+#hv0{color:var(--c0);text-shadow:0 0 10px var(--c0);}#hv1{color:var(--c2);text-shadow:0 0 10px var(--c2);}
+#hv2{color:var(--c3);text-shadow:0 0 10px var(--c3);}#hv3{color:var(--c1);}
+#viz-wrap{position:fixed;top:52px;left:0;right:0;height:46px;z-index:5;}
+#viz{width:100%;height:100%;display:block;}
+#field{position:fixed;top:98px;left:0;right:0;bottom:104px;display:flex;overflow:hidden;}
+.lane{flex:1;position:relative;border-right:1px solid rgba(255,255,255,.025);overflow:hidden;}
+.lane:last-child{border-right:none;}
+.lflash{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .055s;}
+.lflash.lit{opacity:1;}
+.lane[data-l="0"] .lflash{background:linear-gradient(to bottom,transparent 30%,rgba(0,240,255,.2));}
+.lane[data-l="1"] .lflash{background:linear-gradient(to bottom,transparent 30%,rgba(255,45,110,.2));}
+.lane[data-l="2"] .lflash{background:linear-gradient(to bottom,transparent 30%,rgba(245,230,66,.15));}
+.lane[data-l="3"] .lflash{background:linear-gradient(to bottom,transparent 30%,rgba(0,255,153,.2));}
+.note{position:absolute;left:6%;width:88%;height:46px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:rgba(0,0,0,.5);pointer-events:none;will-change:top;}
+.lane[data-l="0"] .note{background:var(--c0);box-shadow:0 0 16px var(--g0);}
+.lane[data-l="1"] .note{background:var(--c1);box-shadow:0 0 16px var(--g1);}
+.lane[data-l="2"] .note{background:var(--c2);box-shadow:0 0 14px var(--g2);}
+.lane[data-l="3"] .note{background:var(--c3);box-shadow:0 0 16px var(--g3);}
+.note.dying{opacity:0;transition:opacity .09s;}
+#hitzone{position:fixed;bottom:52px;left:0;right:0;height:52px;display:flex;z-index:20;}
+#hitline{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c0),var(--c1),var(--c2),var(--c3));box-shadow:0 0 14px rgba(255,255,255,.3);z-index:5;}
+.htgt{flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;border-right:1px solid rgba(255,255,255,.025);position:relative;touch-action:manipulation;user-select:none;}
+.htgt:last-child{border-right:none;}
+.htgt::before{content:'';position:absolute;inset:5px;border-radius:5px;border:2px solid;transition:all .07s;}
+.htgt[data-l="0"]::before{border-color:rgba(0,240,255,.3);background:rgba(0,240,255,.04);}
+.htgt[data-l="1"]::before{border-color:rgba(255,45,110,.3);background:rgba(255,45,110,.04);}
+.htgt[data-l="2"]::before{border-color:rgba(245,230,66,.27);background:rgba(245,230,66,.03);}
+.htgt[data-l="3"]::before{border-color:rgba(0,255,153,.3);background:rgba(0,255,153,.04);}
+.htgt.pressed::before{filter:brightness(2.5);}
+.htgt[data-l="0"].pressed::before{background:rgba(0,240,255,.3);box-shadow:0 0 24px rgba(0,240,255,.6);}
+.htgt[data-l="1"].pressed::before{background:rgba(255,45,110,.3);box-shadow:0 0 24px rgba(255,45,110,.6);}
+.htgt[data-l="2"].pressed::before{background:rgba(245,230,66,.24);box-shadow:0 0 24px rgba(245,230,66,.5);}
+.htgt[data-l="3"].pressed::before{background:rgba(0,255,153,.3);box-shadow:0 0 24px rgba(0,255,153,.6);}
+.klbl{font-family:'Orbitron',sans-serif;font-size:.66rem;font-weight:700;z-index:1;pointer-events:none;}
+.htgt[data-l="0"] .klbl{color:var(--c0);}
+.htgt[data-l="1"] .klbl{color:var(--c1);}
+.htgt[data-l="2"] .klbl{color:var(--c2);}
+.htgt[data-l="3"] .klbl{color:var(--c3);}
+#botbar{position:fixed;bottom:0;left:0;right:0;height:52px;background:rgba(3,3,10,.92);border-top:1px solid rgba(0,240,255,.07);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:30;backdrop-filter:blur(8px);}
+#prog-wrap{flex:1;height:3px;background:rgba(255,255,255,.05);border-radius:2px;margin:0 14px;overflow:hidden;}
+#prog-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--c0),var(--c1));box-shadow:0 0 5px var(--c0);}
+#sname{font-size:.55rem;color:var(--dim);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#pbtn{background:transparent;border:1px solid rgba(0,240,255,.18);color:var(--c0);font-family:'Orbitron',sans-serif;font-size:.42rem;letter-spacing:.16em;padding:6px 12px;border-radius:2px;cursor:pointer;}
+
+/* Feedback */
+.fb{position:fixed;font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.2rem;letter-spacing:.1em;pointer-events:none;z-index:100;animation:fbf .6s ease-out forwards;}
+.fb.perfect{color:var(--c2);text-shadow:0 0 16px var(--c2);}
+.fb.great{color:var(--c3);text-shadow:0 0 16px var(--c3);}
+.fb.good{color:var(--c0);text-shadow:0 0 12px var(--c0);}
+.fb.miss{color:var(--c1);font-size:.9rem;opacity:.8;}
+@keyframes fbf{0%{transform:translateY(0)scale(1);opacity:1}55%{transform:translateY(-34px)scale(1.08);opacity:1}100%{transform:translateY(-68px)scale(.8);opacity:0}}
+.rpl{position:fixed;border-radius:50%;border:2px solid;pointer-events:none;z-index:60;animation:rpla .4s ease-out forwards;}
+@keyframes rpla{0%{width:0;height:0;opacity:1;transform:translate(-50%,-50%)}100%{width:88px;height:88px;opacity:0;transform:translate(-50%,-50%)}}
+#streak{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Orbitron',sans-serif;font-weight:900;font-size:2.8rem;letter-spacing:.2em;color:var(--c2);text-shadow:0 0 40px var(--c2);pointer-events:none;z-index:150;opacity:0;}
+#streak.pop{animation:spop .85s ease-out forwards;}
+@keyframes spop{0%{opacity:0;transform:translate(-50%,-50%)scale(.4)}18%{opacity:1;transform:translate(-50%,-50%)scale(1.2)}55%{opacity:1;transform:translate(-50%,-50%)scale(1)}100%{opacity:0;transform:translate(-50%,-50%)scale(.7)}}
+#multip{position:fixed;top:60px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:.58rem;letter-spacing:.26em;color:var(--c2);opacity:0;transition:opacity .22s;z-index:20;pointer-events:none;}
+#bflash{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .065s;}
+
+/* ── PAUSE ── */
+#s-pause{background:rgba(3,3,10,.92);backdrop-filter:blur(10px);z-index:200;gap:14px;}
+.ph{font-family:'Orbitron',sans-serif;font-size:2.6rem;font-weight:900;letter-spacing:.3em;color:var(--c0);text-shadow:0 0 26px var(--c0);}
+.pbx{background:transparent;border:1px solid rgba(0,240,255,.22);color:var(--c0);font-family:'Orbitron',sans-serif;font-size:.54rem;letter-spacing:.26em;padding:12px 42px;border-radius:2px;cursor:pointer;transition:all .16s;}
+.pbx:hover{background:rgba(0,240,255,.07);}
+
+/* ── RESULTS ── */
+#s-result{gap:0;}
+.rh{font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.6rem);font-weight:900;letter-spacing:.2em;margin-bottom:4px;}
+.rh.win{color:var(--c0);text-shadow:0 0 26px var(--c0);}
+.rh.lose{color:var(--c1);text-shadow:0 0 26px var(--c1);}
+.rsub{color:var(--dim);letter-spacing:.3em;font-size:.64rem;margin-bottom:24px;}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:min(420px,90vw);margin-bottom:20px;}
+.rc{background:var(--panel);border:1px solid rgba(0,240,255,.08);border-radius:3px;padding:14px;text-align:center;}
+.rl{font-family:'Orbitron',sans-serif;font-size:.4rem;letter-spacing:.26em;color:var(--dim);display:block;margin-bottom:5px;}
+.rv{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:700;}
+.scv{color:var(--c0)}.acv{color:var(--c3)}.cov{color:var(--c2)}.grv{font-size:2rem;}
+.gS{color:var(--c2);text-shadow:0 0 16px var(--c2);}.gA{color:var(--c3);}.gB{color:var(--c0)}.gC{color:#fff}.gD,.gF{color:var(--c1);}
+.rbrow{display:flex;gap:9px;width:min(420px,90vw);}
+.rbtn{flex:1;background:transparent;border:1px solid rgba(0,240,255,.2);color:var(--c0);font-family:'Orbitron',sans-serif;font-size:.48rem;letter-spacing:.26em;padding:13px;border-radius:2px;cursor:pointer;transition:all .16s;}
+.rbtn:hover{background:rgba(0,240,255,.06);}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="grid"></div><div id="scan"></div>
+<div id="ptcl"></div><div id="streak"></div><div id="multip"></div><div id="bflash"></div>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen center">
+  <div class="load-logo">BEAT<em>DROP</em></div>
+  <div class="load-bar-wrap"><div class="load-bar" id="load-bar"></div></div>
+  <div id="load-status">CONNECTING…</div>
+</div>
+
+<!-- SONG SELECT -->
+<div id="s-select" class="screen off">
+  <div class="select-header">
+    <div>
+      <div class="header-logo">BEAT<em>DROP</em></div>
+    </div>
+    <div class="header-sub">SELECT A SONG</div>
+  </div>
+  <div class="select-controls">
+    <input id="search-input" placeholder="Search songs…" oninput="filterSongs()">
+    <button class="filter-btn on" data-f="all" onclick="setFilter(this,'all')">ALL</button>
+    <button class="filter-btn" data-f="easy" onclick="setFilter(this,'easy')">EASY</button>
+    <button class="filter-btn" data-f="normal" onclick="setFilter(this,'normal')">NORMAL</button>
+    <button class="filter-btn h" data-f="hard" onclick="setFilter(this,'hard')">HARD</button>
+    <button class="filter-btn x" data-f="extreme" onclick="setFilter(this,'extreme')">EXTREME</button>
+  </div>
+  <div class="songs-grid" id="songs-grid">
+    <div class="loading-songs">
+      <div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="screen off">
+  <div id="hud">
+    <div class="hb"><span class="hbl">SCORE</span><span class="hbv" id="hv0">0</span></div>
+    <div class="hb"><span class="hbl">COMBO</span><span class="hbv" id="hv1">0×</span></div>
+    <div class="hb"><span class="hbl">ACCURACY</span><span class="hbv" id="hv2">—</span></div>
+    <div class="hb"><span class="hbl">HEALTH</span><span class="hbv" id="hv3">♥♥♥</span></div>
+  </div>
+  <div id="viz-wrap"><canvas id="viz"></canvas></div>
+  <div id="field">
+    <div class="lane" data-l="0"><div class="lflash"></div></div>
+    <div class="lane" data-l="1"><div class="lflash"></div></div>
+    <div class="lane" data-l="2"><div class="lflash"></div></div>
+    <div class="lane" data-l="3"><div class="lflash"></div></div>
+  </div>
+  <div id="hitzone">
+    <div id="hitline"></div>
+    <div class="htgt" data-l="0" onpointerdown="tap(0)"><span class="klbl">A</span></div>
+    <div class="htgt" data-l="1" onpointerdown="tap(1)"><span class="klbl">S</span></div>
+    <div class="htgt" data-l="2" onpointerdown="tap(2)"><span class="klbl">D</span></div>
+    <div class="htgt" data-l="3" onpointerdown="tap(3)"><span class="klbl">F</span></div>
+  </div>
+  <div id="botbar">
+    <span id="sname">—</span>
+    <div id="prog-wrap"><div id="prog-bar"></div></div>
+    <button id="pbtn" onclick="doPause()">⏸ PAUSE</button>
+  </div>
+</div>
+
+<!-- PAUSE -->
+<div id="s-pause" class="screen center off">
+  <div class="ph">PAUSED</div>
+  <button class="pbx" onclick="doResume()">▶ RESUME</button>
+  <button class="pbx" onclick="goSelect()">⌂ SONGS</button>
+</div>
+
+<!-- RESULTS -->
+<div id="s-result" class="screen center off">
+  <div class="rh" id="rh">STAGE CLEAR</div>
+  <div class="rsub" id="rsub">PERFORMANCE REPORT</div>
+  <div class="rgrid">
+    <div class="rc"><span class="rl">SCORE</span><span class="rv scv" id="r-sc">0</span></div>
+    <div class="rc"><span class="rl">ACCURACY</span><span class="rv acv" id="r-ac">0%</span></div>
+    <div class="rc"><span class="rl">MAX COMBO</span><span class="rv cov" id="r-co">0</span></div>
+    <div class="rc"><span class="rl">GRADE</span><span class="rv grv" id="r-gr">F</span></div>
+  </div>
+  <div class="rbrow">
+    <button class="rbtn" onclick="doRetry()">↺ RETRY</button>
+    <button class="rbtn" onclick="goSelect()">⌂ SONGS</button>
+  </div>
+</div>
+
 <script>
-const URL = 'https://axmtqdpgdfkrvebhbvjp.supabase.co';
-const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4bXRxZHBnZGZrcnZlYmhidmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NDk1MjUsImV4cCI6MjA5MjAyNTUyNX0.9pVKft1_SmMTCP2obY9H7nMaUQlghMfnRjUzJgVXsrI';
+// ════════════════════════════════════════════════
+//  BEATDROP — Public Game
+//  Replace these two values with your own!
+// ════════════════════════════════════════════════
+const SUPABASE_URL = 'https://axmtqdpgdfkrvebhbvjp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4bXRxZHBnZGZrcnZlYmhidmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NDk1MjUsImV4cCI6MjA5MjAyNTUyNX0.9pVKft1_SmMTCP2obY9H7nMaUQlghMfnRjUzJgVXsrI';
 
-const out = document.getElementById('out');
-out.innerHTML = 'URL: ' + URL + '<br>KEY: ' + KEY.substring(0,20) + '...<br><br>Fetching...';
+const DIFF_CFG={
+  easy:   {lanes:2,fallSec:3.2},
+  normal: {lanes:3,fallSec:2.5},
+  hard:   {lanes:4,fallSec:1.95},
+  extreme:{lanes:4,fallSec:1.5}
+};
+const COLORS=['#00f0ff','#ff2d6e','#f5e642','#00ff99'];
+const ICONS=['▼','●','■','◆'];
+const HIT_W={perfect:.065,great:.130,good:.200};
+const SCORE={perfect:300,great:200,good:100};
 
-fetch(URL + '/rest/v1/songs?order=created_at.desc', {
-  headers: {'apikey': KEY, 'Authorization': 'Bearer ' + KEY}
-})
-.then(r => {
-  out.innerHTML += '<br>Status: ' + r.status;
-  return r.text();
-})
-.then(t => out.innerHTML += '<br>Response: ' + t)
-.catch(e => out.innerHTML += '<br>ERROR: ' + e.message);
-</script>
-</body>
-</html>
+let allSongs=[], currentFilter='all', audioCtx=null, analyserNode=null;
+let G={};
+
+// Cursor
+const cur=document.getElementById('cur');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+
+// ── Boot ──
+async function boot(){
+  setLoad('CONNECTING…',10);
+  try{
+    setLoad('FETCHING SONGS…',50);
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/songs?order=created_at.desc`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    });
+    if(!res.ok) throw new Error('Failed to fetch songs');
+    allSongs=await res.json();
+    setLoad('READY',100);
+    await sleep(400);
+    showScreen('s-select');
+    renderSongs(allSongs);
+  }catch(err){
+    setLoad('ERROR: '+err.message,100);
+    console.error(err);
+    // Still show select screen with empty state
+    setTimeout(()=>{showScreen('s-select');render
